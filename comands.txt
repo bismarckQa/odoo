@@ -1,0 +1,349 @@
+# GUÍA COMPLETA - ENTORNO ODOO DESARROLLO
+
+## 1. CONFIGURACIÓN INICIAL
+
+### Crear estructura de proyecto
+```bash
+mkdir C:\odoo-dev
+cd C:\odoo-dev
+mkdir config addons logs backups scripts
+```
+
+### Clonar repositorio oficial
+```bash
+git clone https://github.com/odoo/odoo.git
+cd odoo
+```
+
+### Configurar remotes para tu fork
+```bash
+# Configurar tu fork como origin
+git remote set-url origin https://github.com/TU_USUARIO/odoo.git
+
+# Mantener upstream como repo oficial
+git remote set-url upstream https://github.com/odoo/odoo.git
+
+# Verificar configuración
+git remote -v
+```
+
+### Crear y cambiar a rama de desarrollo
+```bash
+git checkout -b my-odoo-dev
+```
+
+## 2. ENTORNO VIRTUAL Y DEPENDENCIAS
+
+### Crear entorno virtual con Python 3.12
+```bash
+py -3.12 -m venv venv
+```
+
+### Activar entorno virtual
+```bash
+venv\Scripts\activate
+```
+
+### Instalar dependencias esenciales
+```bash
+pip install psycopg2-binary lxml decorator babel polib python-dateutil setuptools passlib reportlab pytz werkzeug requests PyPDF2 num2words phonenumbers pywin32 zeep pyOpenSSL chardet qrcode[pil] lxml_html_clean
+```
+
+### Instalar desde requirements.txt (opcional)
+```bash
+pip install -r requirements.txt
+```
+
+## 3. DOCKER - BASE DE DATOS
+
+### Archivo .env
+```env
+# PostgreSQL
+POSTGRES_DB=postgres
+POSTGRES_USER=odoo
+POSTGRES_PASSWORD=odoo123
+
+# pgAdmin
+PGADMIN_EMAIL=admin@odoo.dev
+PGADMIN_PASSWORD=admin123
+
+# Configuración Odoo local
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=odoo
+DB_PASSWORD=odoo123
+```
+
+### Archivo odoo.yml
+```yaml
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: odoo_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: odoo_pgladmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "8006:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: odoo_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  redis_data:
+```
+
+### Comandos Docker
+```bash
+# Levantar contenedores
+docker-compose -f odoo.yml up -d
+
+# Ver estado de contenedores
+docker ps
+
+# Parar contenedores
+docker-compose -f odoo.yml down
+
+# Ver logs
+docker-compose -f odoo.yml logs -f
+```
+
+## 4. CONFIGURACIÓN ODOO
+
+### Archivo my-odoo-dev.conf
+```ini
+[options]
+db_host = localhost
+db_port = 5432
+db_user = odoo
+db_password = odoo123
+addons_path = C:\odoo-dev\addons,C:\odoo-dev\odoo\addons
+admin_passwd = admin123
+log_level = debug
+list_db = True
+dbfilter = dev_.*
+without_demo = all
+dev_mode = reload,qweb,werkzeug,xml
+auto_reload = True
+workers = 0
+proxy_mode = False
+http_enable = True
+```
+
+## 5. COMANDOS ODOO
+
+### Levantar Odoo
+```bash
+# Activar entorno virtual
+venv\Scripts\activate
+
+# Ejecutar Odoo
+python odoo-bin -c ../config/my-odoo-dev.conf
+```
+
+### Comandos específicos
+```bash
+# Actualizar módulo específico
+python odoo-bin -c ../config/my-odoo-dev.conf -u NOMBRE_MODULO
+
+# Instalar módulo
+python odoo-bin -c ../config/my-odoo-dev.conf -i NOMBRE_MODULO
+
+# Actualizar todos los módulos
+python odoo-bin -c ../config/my-odoo-dev.conf -u all
+
+# Solo inicializar (no levantar servidor)
+python odoo-bin -c ../config/my-odoo-dev.conf --stop-after-init
+```
+
+### Crear nuevo módulo
+```bash
+python odoo-bin scaffold NOMBRE_MODULO ../addons
+```
+
+## 6. GIT - FLUJO DE TRABAJO
+
+### Verificar estado
+```bash
+git status
+git branch
+```
+
+### Actualizar desde repositorio oficial
+```bash
+# Traer cambios
+git fetch upstream
+
+# Ver qué cambios hay
+git log --oneline mi-desarrollo-local..upstream/18.0
+
+# Aplicar cambios
+git merge upstream/18.0
+```
+
+### Subir cambios
+```bash
+# Añadir cambios
+git add .
+
+# Commit
+git commit -m "descripción del cambio"
+
+# Subir a tu fork
+git push origin my-odoo-dev
+```
+
+### Crear nueva rama
+```bash
+git checkout -b nueva-funcionalidad
+```
+
+## 7. URLS IMPORTANTES
+
+- **Odoo (desarrollo):** http://localhost:8069
+- **pgAdmin:** http://localhost:8006
+- **Developer Mode:** http://localhost:8069/web?debug=1
+
+## 8. COMANDOS DE LIMPIEZA
+
+### Limpiar Docker
+```bash
+docker-compose -f odoo.yml down
+docker system prune -f
+docker volume prune -f
+```
+
+### Reiniciar entorno completo
+```bash
+# 1. Parar Odoo (Ctrl+C)
+# 2. Parar Docker
+docker-compose -f odoo.yml down
+# 3. Levantar Docker
+docker-compose -f odoo.yml up -d
+# 4. Levantar Odoo
+python odoo-bin -c ../config/my-odoo-dev.conf
+```
+
+## 9. DESARROLLO DE MÓDULOS
+
+### Estructura básica de módulo
+```
+mi_modulo/
+├── __init__.py
+├── __manifest__.py
+├── models/
+│   ├── __init__.py
+│   └── mi_modelo.py
+├── views/
+│   └── mi_vista.xml
+├── security/
+│   └── ir.model.access.csv
+└── data/
+    └── datos_iniciales.xml
+```
+
+### Activar Developer Mode
+- URL: http://localhost:8069/web?debug=1
+- O desde Settings → Activar Developer Mode
+
+## 10. TROUBLESHOOTING
+
+### Si Odoo no arranca
+```bash
+# Verificar dependencias
+pip list | grep odoo
+
+# Verificar PostgreSQL
+docker ps
+
+# Logs de Odoo
+python odoo-bin -c ../config/my-odoo-dev.conf --log-level=debug
+```
+
+### Si hay errores de módulos
+```bash
+# Forzar actualización
+python odoo-bin -c ../config/my-odoo-dev.conf -u all --stop-after-init
+```
+
+### Si hay conflictos Git
+```bash
+# Abortar merge
+git merge --abort
+
+# O resolver conflictos y continuar
+git add .
+git commit -m "resolve: conflictos resueltos"
+```
+
+####Modelo del archivo __manifest__.py
+# -*- coding: utf-8 -*-
+{
+    'name': "Sistema de Gestión Escolar",
+    'summary': "Gestión completa de colegios: estudiantes, profesores, cursos y calificaciones",
+    'description': """
+        Sistema completo para la gestión de instituciones educativas que incluye:
+        - Gestión de estudiantes y profesores
+        - Control de cursos y materias
+        - Sistema de calificaciones
+        - Horarios y asistencia
+        - Reportes académicos
+        - Comunicación con padres
+    """,
+    'author': "Tu Nombre",
+    'website': "https://www.tucolegio.com",
+    'category': 'Education',
+    'version': '1.0.0',
+    'license': 'LGPL-3',
+
+    # Dependencias mínimas
+    'depends': ['base', 'mail', 'contacts'],
+
+    # Archivos de datos a cargar
+    'data': [
+        'security/ir.model.access.csv',
+        'data/colegio_data.xml',
+        'views/estudiante_views.xml',
+        'views/profesor_views.xml',
+        'views/curso_views.xml',
+        'views/menu_views.xml',
+    ],
+
+    # Datos de demostración
+    'demo': [
+        'demo/demo_data.xml',
+    ],
+
+    # Configuraciones importantes
+    'installable': True,
+    'auto_install': False,
+    'application': True,  # Marca como aplicación principal
+    'sequence': 10,
+}
