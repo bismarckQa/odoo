@@ -9837,7 +9837,7 @@ msgstr ""
 #. module: mail
 #: model:mail.activity.type,name:mail.mail_activity_data_todo
 msgid "To-Do"
-msgstr ""
+msgstr "מטלה"
 
 #. module: mail
 #. odoo-javascript
@@ -11455,7 +11455,7 @@ msgstr ""
 #. odoo-python
 #: code:addons/mail/models/discuss/discuss_channel.py:0
 msgid "joined the channel"
-msgstr ""
+msgstr "הצטרף לערוץ"
 
 #. module: mail
 #. odoo-python
